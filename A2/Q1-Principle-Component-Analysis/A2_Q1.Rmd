@@ -1,0 +1,112 @@
+---
+title: "A2_Q1"
+author: "Chia-Ying Chao"
+date: "17/02/2023"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+# Be sure the data is in your current working directory
+wine_data<-read_csv("red_wine_data.csv", col_types = cols())
+glimpse(wine_data)
+```
+
+```{r}
+wine_data_chem <- wine_data %>% select(-quality)
+head(wine_data_chem)
+
+```
+```{r}
+library(MASS)
+library(GGally)
+library(corrplot)
+#Sample correlation matrice
+corrplot(cor(wine_data_chem), type="upper", method="number",number.cex = 0.7)
+
+#scatterplots for those that have stronger correlation with fixed acidity
+plot(wine_data_chem$'fixed acidity', wine_data_chem$'citric acid',
+   xlab="Fixed acidity", ylab="Citric acid")
+
+plot(wine_data_chem$'fixed acidity', wine_data_chem$'density',
+   xlab="Fixed acidity", ylab="density")
+
+plot(wine_data_chem$'fixed acidity', wine_data_chem$'pH',
+   xlab="Fixed acidity", ylab="pH")
+
+plot(wine_data_chem$'free sulfur dioxide', wine_data_chem$'total sulfur dioxide',
+   xlab="Free sulfur dioxide", ylab="Total sulfur dioxide")
+
+
+```
+
+The sample correlation matrices shows the correlation between variables, we can observe that there are four correlation values exceed 0.6 indicating that they have a strong correlation between the variables. The correlation coefficients between citric acid and density and fixed acidity are 0.67. Total sulfur dioxide versus free sulfur dioxide also has a correlation coefficient of 0.67 and pH versus fixed acidity is -0.68. The correlation relationship can also be seen in the scatterplots, i.e. positive or negative.
+
+
+```{r}
+###ii)
+PCA <- prcomp(wine_data_chem, center=TRUE,scale = TRUE )
+PCA
+```
+```{r}
+###a)Find the eigenvalues 
+PCA$sdev^2
+
+```
+```{r}
+###b) choose the number of the principle component to retain
+screeplot(PCA, npcs=12, type = "lines", main="")
+
+```
+
+To decide which principle components to retain, we can look at the screeplot, we select the ones that have eigenvalues that are at least 1 by Kaiser's rule where the average of all eigenvalues is p/p = 1 where p = 11. Additionally, we select the principle component that satisfies the 80% rule since they are able to describe at least 80% of the variance. In this case, it is the first five principle components that we have to retain.  
+
+p.s.the eigenvalue of PC5 is extreme close to 1, so we count that as well.
+
+
+```{r}
+### c) 
+library(factoextra)
+fviz_pca_var(PCA, col.var="contrib", axes=c(1,2))+scale_color_gradient2(low = "white", mid="blue", high="red", midpoint = 3)+xlim(c(-1, 1))+ylim(c(-1,1)) +theme_minimal()
+
+```
+
+In the plot, x-axes represent PC2 and y-axis represent PC1. Here,we can see that total sulfur dioxide and free sulfur dioxide strongly and positively influence PC2 but alcohol gives a negative loading on PC2. Sulphates, fixed acidity, citric acid ,and pH strongly influence PC1. Furthermore, Sulphates and pH diverge and form a large angle that is almost 180 degrees meaning that they are negatively correlated. 
+
+```{r}
+library(FactoMineR)
+PCA_summary<- summary(PCA(wine_data_chem, graph=FALSE))
+
+```
+```{r}
+###d)
+eigens<-PCA$sdev^2
+screeplot(PCA, npcs=12, type = "lines", main="")
+#Proportion of variability
+plot((eigens/sum(eigens)), xlab="Principle Component", ylab="Proportion of Variance Explained", type="b")
+#Cumulative proportion of variability 
+plot(cumsum(eigens/sum(eigens)), xlab="Principle Component", ylab="Cumulative Proportion of Variance Explained", type="b")
+abline(h=0.8, col=2, lty=2)
+
+```
+
+From the summary and the graphs, we can observe that the first principle component explains 28.1% of the variability, PC2 explains 17.5%, PC3 explains 14.1%, PC4 explains 11.0% and finally PC5 explains 8.7% of the variability. In the cumulative proportion of variability plot, we can see that there are five dots representing the first five principle components. Therefore, we can conclude that 79.5% of the entire variability which is approximately 80% in the data set is explained by the first five principle components according to 80% rule.
+
+```{r}
+###e)  plot the graph of their contributions 
+fviz_contrib(PCA, choice="var", axes= 1)
+fviz_contrib(PCA, choice="var", axes=c(2))
+fviz_contrib(PCA, choice="var", axes=c(3))
+fviz_contrib(PCA, choice="var", axes=c(4))
+fviz_contrib(PCA, choice="var", axes=c(5))
+fviz_contrib(PCA, choice="var", axes=c(1,2,3,4,5))
+```
+
+We can observe fixed acidity, citric acid, pH, and density are strongly correlated to the first principle component. Free sulfur dioxide and total sulfur dioxide have extreme low contribution and it is possible to remove them to simplify the overall analysis.However, in the second principle component, total sulfur dioxide, free sulfur dioxide and alcohol passes the expected average contribution of all the variables, meaning that they have strong correlation with PC2, but the sulphates and pH have really low contribution in this case. Alcohol, volatile acidity, free sulfur dioxide, density, and total sulfur dioxide highly influence the third principle component, and chlorides and pH have less influence in this component. In fourth principle component, chlorides, sulphates, and residual sugar have high contribution, but again pH has the least correlation in this case. In the fifth principle component, residual sugar and alcohol has stronger correlation but fixed acidity and citric acid has the least correlation.  
+
+Overall, the contribution of all the variables except sulphates, volatile acidity, and pH have passed the expected average contribution for all the variables, meaning that they have a stronger correlation with the first five principle components. After analyzing contribution of variables in each component, we know that pH has the least contribution (correlation) to most of the components ,therefore, we can see that pH has the least contribution in the last plot. 
+
+
+f)
+It is important to standardize the variables so that the covariance are easily comparable for each pair of features. If the variables are not standardized, the variance changes, and features with larger ranges of numbers will have higher covariance, therefore, the values of principle components will become different. For instance, sulfur dioxide and citric acid would have a larger influence on the principle components and the other variables with less variance would have less influence. Moreover, after standardizing the data, we know that the variables are scaled equally and they are directly comparable to each other in principle component analysis since standardization prevents any variable that has a larger variance from dominating the principle components. 
+
